@@ -13,7 +13,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 
 1. リリースページから最新のバージョンの exe ファイルをダウンロードします。
 
-   [リリースページへ移動](リリースページのURL)
+   [リリースページへ移動](https://github.com/zukio/thumb-crafter/releases/tag/udpexe1.0)
 
 2. 監視対象ディレクトリに「thumb_crafter」フォルダを作成し、ダウンロードした exe ファイルを保存します。
 
