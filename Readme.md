@@ -30,7 +30,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 1. リポジトリをクローンします。
 
    ```shell
-   git clone https://github.com/your-username/thumb-crafter-udp.git
+   git clone https://github.com/zukio/thumb-crafter.git
    ```
 
 2. プロジェクトのディレクトリに移動します。
