@@ -26,6 +26,13 @@ class VideoFileHandler(FileSystemEventHandler):
         self.event_queue = []  # イベントキューを追加
         self.seconds = seconds
 
+    def destroy(self, reason):
+        # 終了メッセージをUDPで送信する
+        self.sender.send_message(self.ip, self.port, reason)
+        print(reason)
+        logging.info(reason)
+
+
     def use_udp(self):
         try:
             # イベントキューが空でない場合にUDPメッセージを送信
@@ -41,7 +48,6 @@ class VideoFileHandler(FileSystemEventHandler):
                     "files": video_files
                 })
                 self.sender.send_message(self.ip, self.port, message)
-                print(f'メッセージ送信: {self.ip}{self.port}')
                 self.event_queue.clear()  # イベントキューをクリア
 
         except Exception as e:

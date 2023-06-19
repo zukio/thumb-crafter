@@ -1,4 +1,7 @@
 import os
+import sys
+import atexit
+import signal
 import time
 import argparse
 from watchdog.observers import Observer
@@ -24,11 +27,30 @@ if __name__ == "__main__":
     observer.schedule(event_handler, path, recursive=not args.exclude_subdirectories)
     observer.start()
 
+    # 終了処理
+    def exit_handler(reason):
+        result = event_handler.destroy(reason)
+        sys.exit(result)
+
+    # プログラムが終了する際に呼び出されるハンドラを登録する
+    # atexit.register(exit_handler("[Exit] Normal"))
+
+    # Ctrl+Cなどのシグナルハンドラを登録する
+    def exit_wrapper(reason):
+        return lambda sig, frame: exit_handler(reason)
+    signal.signal(signal.SIGINT, exit_wrapper("[Exit] Signal Interrupt"))
+
+    # アプリケーションのメイン処理
     try:
         while True:
+            command = input("Enter a command (type 'exit' to exit): ")
             time.sleep(1)
+            if command.lower() == "exit":
+                exit_handler("[Exit] Exit Command")
     except KeyboardInterrupt:
+        # 例外処理
         observer.stop()
+        exit_handler("[Exit] Keyboard Interrupt")
     observer.join()
 
 

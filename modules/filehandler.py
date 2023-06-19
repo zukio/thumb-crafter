@@ -20,6 +20,11 @@ class VideoFileHandler(FileSystemEventHandler):
         super().__init__()
         self.exclude_subdirectories = exclude_subdirectories
         self.seconds = seconds
+
+    def destroy(self, reason):
+        # 終了メッセージをUDPで送信する
+        print(reason)
+        logging.info(reason)
     
     def on_deleted(self, event):
         """ファイル削除時に呼び出されます。"""
