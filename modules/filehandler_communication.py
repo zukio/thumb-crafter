@@ -134,3 +134,4 @@ def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
                         file_path = os.path.join(root, file)
                         filelist.append(file_path)
                         event_handler.create_thumbnail(file_path)
+
