@@ -50,7 +50,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 5. thumb-craft-udp.py スクリプトを使用して、ディレクトリの監視とサムネイル生成を開始します。
 
    ```shell
-   python thumb-craft-udp.py --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+   python thumb_crafter_udp.py --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
    ```
 
 ## Usage

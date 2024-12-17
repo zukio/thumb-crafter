@@ -1,94 +1,110 @@
-import os
+""" 
+監視対象ディレクトリ内のファイルを監視し、処理を実行します。
+"""
 from watchdog.events import FileSystemEventHandler
 from modules.video_thumbGenerator import VideoThumbnailGenerator
+from modules.pdf_converter import PDFConverter
+from modules.ppt_to_video import export_ppt_to_video
 from modules.utils.logwriter import setup_logging
+
+
+import os
 import logging
 
-# 監視する動画ファイルの拡張子
-patterns = ['.mp4', '.avi', '.mkv', '.flv', '.mov'] 
+# 監視対象の拡張子
+VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.flv', '.mov']
+PDF_EXTENSION = '.pdf'
+PPT_EXTENSIONS = ['.pptx', '.ppsx']
 
-# 対象の動画ファイルのパスのリスト
-video_files = []
-
-# ログの設定を行う
 setup_logging()
 
-class VideoFileHandler(FileSystemEventHandler):
-    """新たな動画ファイルの追加または既存の動画ファイルの変更を監視し、その動画の最初のフレームをサムネイルとして保存します。"""
+# 動画ファイルのパスを保持するリスト
+video_files = []
+
+
+class FileHandler(FileSystemEventHandler):
+    """ファイルの追加や変更を監視し、処理を実行します。"""
 
     def __init__(self, exclude_subdirectories, seconds):
         super().__init__()
         self.exclude_subdirectories = exclude_subdirectories
         self.seconds = seconds
+        self.file_converter = PDFConverter()  # PDFConverterをselfで初期化
 
-    def destroy(self, reason):
-        # 終了メッセージをUDPで送信する
-        print(reason)
-        logging.info(reason)
-    
-    def on_deleted(self, event):
-        """ファイル削除時に呼び出されます。"""
-        try:
-            if event.src_path.endswith(tuple(patterns)):
-                print(f'Event type: {event.event_type} path : {event.src_path}')
-                logging.info(f'Event type: {event.event_type} path : {event.src_path}')
-                video_files.remove(event.src_path)
-                # サムネイルを削除
-                thumb_path = f"{os.path.splitext(event.src_path)[0]}_thumbnail.jpg"
-                if os.path.isfile(thumb_path):
-                    os.remove(thumb_path)
-        except Exception as e:
-            print('Error in file monitoring:', e)
-            logging.info('[!] Error in file monitoring:', e)
+    def on_created(self, event):
+        """ファイル作成時に呼び出されます。"""
+        if event.is_directory:
+            return
 
-    def on_modified(self, event):
-        """ファイルが追加または変更された場合に呼び出されます。"""
-        try:
-            if event.src_path.endswith(tuple(patterns)):
-                print(f'Event type: {event.event_type} path : {event.src_path}')
-                logging.info(f'Event type: {event.event_type} path : {event.src_path}')
-                video_files.append(event.src_path)
-                self.create_thumbnail(event.src_path)
-        except Exception as e:
-            print('Error in file monitoring: %s', e)
-            logging.info('[!] Error in file monitoring: %s', e)
+        file_path = event.src_path
+        ext = os.path.splitext(file_path)[1].lower()
+        logging.info(f"on_created called with file: {
+                     file_path}, extension: {ext}")
+
+        if ext.lower() in VIDEO_EXTENSIONS:
+            logging.info(f"Processing video file: {file_path}")
+            self.create_thumbnail(file_path)
+        elif ext.lower() == PDF_EXTENSION:
+            logging.info(f"Processing PDF file: {file_path}")
+            self.convert_pdf_to_images(file_path)
+        elif ext.lower() in PPT_EXTENSIONS:
+            logging.info(f"Processing PPT file: {file_path}")
+            # self.convert_ppt_to_pdf(file_path)
+            self.convert_ppt_to_video(file_path)
 
     def create_thumbnail(self, file_path):
-        """指定された動画ファイルからサムネイルを生成します。"""
+        """動画のサムネイルを生成します。"""
         try:
             thumbnail_path = VideoThumbnailGenerator().create_thumbnail(file_path, self.seconds)
-            print(f'Thumbnail generation succeeded: {thumbnail_path}')
-            logging.info(f'Thumbnail generation succeeded: {thumbnail_path}')
+            logging.info(f"Thumbnail generated: {thumbnail_path}")
         except Exception as e:
-            print('Thumbnail generation failed: %s', e)
-            logging.info('[!] Thumbnail generation failed: %s', e)
+            logging.error(f"Failed to create video thumbnail: {e}")
 
-    def list_files(self, start_path):
-        """指定したディレクトリ（およびそのサブディレクトリ）内のすべてのファイルにイベントを設定"""
+    def convert_pdf_to_images(self, pdf_path):
+        """PDFをシーケンス画像に変換し、1ページ目をサムネイルに設定します。"""
         try:
-            # 起動時にファイルを読み込んだときのUDP送信
-            logging.info('===============')
-            logging.info(f'Starting to monitor the directory: {start_path}')
-            set_filehandle(self, start_path, self.exclude_subdirectories, video_files)
+            output_dir = os.path.join(os.path.dirname(pdf_path), "sequence")
+            images = self.file_converter.convert_pdf_to_images(
+                pdf_path, output_dir)
+            if images:
+                thumbnail_path = os.path.join(
+                    os.path.dirname(pdf_path), "thumbnail.png")
+                os.rename(images[0], thumbnail_path)
+                logging.info(f"PDF thumbnail generated: {thumbnail_path}")
         except Exception as e:
-            print('Error in listing files: %s', e)
-            logging.info('[!] Error in listing files: %s', e)
+            logging.error(f"Failed to convert PDF: {e}")
+
+    def convert_ppt_to_pdf(self, ppt_path):
+        """PPTX/PPSXをPDFに変換します。"""
+        try:
+            self.file_converter.convert_ppt_to_pdf(ppt_path)
+        except Exception as e:
+            logging.error(f"Failed to convert PPT to video: {e}")
+
+    def convert_ppt_to_video(self, ppt_path):
+        """PPTX/PPSXを動画に変換します。"""
+        try:
+            folder_path = os.path.dirname(ppt_path)
+            # output_folder = os.path.join(folder_path, "ExportedVideos")
+
+            # export_ppt_to_videoを呼び出してビデオに変換
+            export_ppt_to_video(folder_path, folder_path)
+        except Exception as e:
+            logging.error(f"Failed to convert PPT to video: {e}")
+
 
 def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
-    """指定したディレクトリ（およびそのサブディレクトリ）内のすべてのファイルにイベントを設定"""
+    """指定したディレクトリ内のすべての動画ファイルに処理を実行します。"""
     if exclude_subdirectories:
         for file in os.listdir(start_path):
-            if file.endswith(tuple(patterns)):
+            if file.endswith(tuple(VIDEO_EXTENSIONS)):
                 file_path = os.path.join(start_path, file)
                 filelist.append(file_path)
                 event_handler.create_thumbnail(file_path)
     else:
-        for root, dirs, files in os.walk(start_path):
-            current_depth = root.count(os.path.sep) - start_path.count(os.path.sep)
-            # サブディレクトリの深さが 4 以下の場合のみ処理を行う（誤使用を想定した暴走ガード）
-            if current_depth < 5:
-                for file in files:
-                    if file.endswith(tuple(patterns)):
-                        file_path = os.path.join(root, file)
-                        filelist.append(file_path)
-                        event_handler.create_thumbnail(file_path)
+        for root, _, files in os.walk(start_path):
+            for file in files:
+                if file.endswith(tuple(VIDEO_EXTENSIONS)):
+                    file_path = os.path.join(root, file)
+                    filelist.append(file_path)
+                    event_handler.create_thumbnail(file_path)
