@@ -75,8 +75,11 @@ class FileHandler(FileSystemEventHandler):
             self.convert_pdf_to_images(file_path)
         elif ext.lower() in PPT_EXTENSIONS:
             logging.info(f"Processing PPT file: {file_path}")
-            # self.convert_ppt_to_pdf(file_path)
-            self.convert_ppt_to_video(file_path)
+            try:
+                self.convert_ppt_to_video(file_path)
+            except Exception as e:
+                logging.error(f"Failed to convert PPT to video: {e}")
+                self.convert_ppt_to_pdf(file_path)
 
         self.queue_event(event)
 
