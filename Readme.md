@@ -9,6 +9,17 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 - 動画ファイルが削除された場合には、サムネイルも削除します。
 - 動画ファイルの追加、変更、削除のイベント情報を UDP メッセージとして指定した IP アドレスとポートに送信します。
 
+## EX版 追加の機能
+
+- PDFからシーケンス画像生成
+
+  PDFファイルをシーケンス画像に変換し、1ページ目をサムネイルとして設定します。
+  PDFごとに個別のシーケンスフォルダを作成し管理します。
+
+- PowerPointファイルの自動ビデオ化
+
+  PowerPointが使用できる環境であれば、PowerPoint（PPTX、PPSX）ファイルをMP4ビデオに変換し、動画からサムネイルを生成します。解像度やフレームレートの指定も可能です。
+
 ## Download and Installation
 
 1. リリースページから最新のバージョンの exe ファイルをダウンロードします。
@@ -22,6 +33,9 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
    FFMpeg 公式サイト：[https://ffmpeg.org/](https://ffmpeg.org/)
 
    注：インストールが完了したら、FFMpeg がシステムのパスに追加されているはずです。本アプリは ffmpeg がシステムパスに追加されているか、またはその実行ファイル（ffmpeg.exe）が直接このスクリプトと同じディレクトリに存在することが前提となっています。
+
+4. ImageMagick ツールをインストールします。※ ImageMagick ツールを使用するにはGhostScript が必要です。
+   ImageMagick 公式サイト：[https://imagemagick.org/script/download.php](https://imagemagick.org/script/download.php)
 
 ## For Custom
 
