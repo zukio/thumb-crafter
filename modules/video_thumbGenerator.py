@@ -4,7 +4,6 @@ ffmpegを使用して動画ファイルからサムネイルを生成します�
 """
 import os
 import asyncio
-import shlex
 
 
 class VideoThumbnailGenerator:
@@ -15,13 +14,12 @@ class VideoThumbnailGenerator:
 
         if user_second == 0 or duration <= user_second:
             # 動画の長さが指定秒以下の場合、最初のフレームをサムネイルとして生成
-            cmd = f'ffmpeg -y -i {shlex.quote(file_path)
-                                  } -vframes 1 {shlex.quote(thumbnail_path)}'
+            cmd = f'ffmpeg -y -i "{file_path}" -vframes 1 "{thumbnail_path}"'
         else:
             # 分と秒に分割して時間指定
             minutes, seconds = divmod(user_second, 60)
-            cmd = f'ffmpeg -y -i {shlex.quote(file_path)} -ss {int(minutes):02d}:{int(
-                seconds):02d} -t 00:00:01 -vframes 1 {shlex.quote(thumbnail_path)}'
+            cmd = f'ffmpeg -y -i "{file_path}" -ss {int(minutes):02d}:{int(
+                seconds):02d} -t 00:00:01 -vframes 1 "{thumbnail_path}"'
 
         process = await asyncio.create_subprocess_shell(
             cmd,
@@ -39,8 +37,8 @@ class VideoThumbnailGenerator:
 
     async def get_video_duration(self, file_path):
         """指定された動画ファイルの長さを非同期で取得します。"""
-        cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {
-            shlex.quote(file_path)}'
+        cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{
+            file_path}"'
 
         process = await asyncio.create_subprocess_shell(
             cmd,
@@ -51,11 +49,7 @@ class VideoThumbnailGenerator:
         stdout, stderr = await process.communicate()
 
         if process.returncode == 0:
-            try:
-                return float(stdout.decode().strip())
-            except ValueError:
-                raise Exception(f"Invalid duration format: {
-                                stdout.decode().strip()}")
+            return float(stdout.decode().strip())
         else:
             raise Exception(f"Failed to get video duration: {
                             stderr.decode().strip()}")
