@@ -1,15 +1,14 @@
-""" 
+"""
 監視対象ディレクトリ内のファイルを監視し、処理を実行します。
 """
 from watchdog.events import FileSystemEventHandler
 from modules.video_thumbGenerator import VideoThumbnailGenerator
 from modules.pdf_converter import PDFConverter
 from modules.ppt_to_video import export_ppt_to_video
-from modules.utils.logwriter import setup_logging
-
-
+from utils.logwriter import setup_logging
 import os
 import logging
+import socket
 
 # 監視対象の拡張子
 VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.flv', '.mov']
@@ -18,16 +17,26 @@ PPT_EXTENSIONS = ['.pptx', '.ppsx']
 
 setup_logging()
 
-# 動画ファイルのパスを保持するリスト
-video_files = []
+
+def send_udp_message(ip, port, message):
+    """UDPメッセージを送信します。"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.sendto(message.encode(), (ip, port))
+        sock.close()
+    except Exception as e:
+        logging.error(f"Error in sending UDP message: {e}")
 
 
 class FileHandler(FileSystemEventHandler):
     """ファイルの追加や変更を監視し、処理を実行します。"""
 
-    def __init__(self, exclude_subdirectories, seconds):
+    def __init__(self, exclude_subdirectories, sender=None, ip=None, port=None, seconds=1):
         super().__init__()
         self.exclude_subdirectories = exclude_subdirectories
+        self.sender = sender
+        self.ip = ip
+        self.port = port
         self.seconds = seconds
         self.file_converter = PDFConverter()  # PDFConverterをselfで初期化
 
@@ -41,19 +50,28 @@ class FileHandler(FileSystemEventHandler):
         logging.info(f"on_created called with file: {
                      file_path}, extension: {ext}")
 
-        if ext.lower() in VIDEO_EXTENSIONS:
+        if ext in VIDEO_EXTENSIONS:
             logging.info(f"Processing video file: {file_path}")
             self.create_thumbnail(file_path)
-        elif ext.lower() == PDF_EXTENSION:
+        elif ext == PDF_EXTENSION:
             logging.info(f"Processing PDF file: {file_path}")
             self.convert_pdf_to_images(file_path)
-        elif ext.lower() in PPT_EXTENSIONS:
+        elif ext in PPT_EXTENSIONS:
             logging.info(f"Processing PPT file: {file_path}")
             try:
                 self.convert_ppt_to_video(file_path)
             except Exception as e:
                 logging.error(f"Failed to convert PPT to video: {e}")
                 self.convert_ppt_to_pdf(file_path)
+
+        if self.sender:
+            try:
+                self.sender.send_message(
+                    self.ip, self.port, f"File created: {file_path}")
+            except Exception as e:
+                logging.error(f"Error in sending message: {e}")
+        else:
+            send_udp_message(self.ip, self.port, f"File created: {file_path}")
 
     def create_thumbnail(self, file_path):
         """動画のサムネイルを生成します。"""
@@ -82,18 +100,34 @@ class FileHandler(FileSystemEventHandler):
         try:
             self.file_converter.convert_ppt_to_pdf(ppt_path)
         except Exception as e:
-            logging.error(f"Failed to convert PPT to video: {e}")
+            logging.error(f"Failed to convert PPT to PDF: {e}")
 
     def convert_ppt_to_video(self, ppt_path):
         """PPTX/PPSXを動画に変換します。"""
         try:
             folder_path = os.path.dirname(ppt_path)
-            # output_folder = os.path.join(folder_path, "ExportedVideos")
-
-            # export_ppt_to_videoを呼び出してビデオに変換
             export_ppt_to_video(folder_path, folder_path)
         except Exception as e:
             logging.error(f"Failed to convert PPT to video: {e}")
+
+    def destroy(self, reason):
+        """終了時のクリーンアップ処理を行います。"""
+        if self.sender:
+            try:
+                self.sender.send_message(self.ip, self.port, reason)
+            except Exception as e:
+                logging.error(f"Error in sending message: {e}")
+        else:
+            send_udp_message(self.ip, self.port, reason)
+        logging.info(f"Destroy called with reason: {reason}")
+        return 0
+
+    def list_files(self, path):
+        """指定したディレクトリ内のすべてのファイルをリストします。"""
+        for root, _, files in os.walk(path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                logging.info(f"Found file: {file_path}")
 
 
 def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
@@ -111,3 +145,11 @@ def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
                     file_path = os.path.join(root, file)
                     filelist.append(file_path)
                     event_handler.create_thumbnail(file_path)
+
+
+class FileMockEvent:
+    """モックイベントクラス"""
+
+    def __init__(self, src_path):
+        self.src_path = src_path
+        self.is_directory = False

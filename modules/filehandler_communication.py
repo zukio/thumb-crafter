@@ -8,7 +8,7 @@ from watchdog.events import FileSystemEventHandler
 from modules.video_thumbGenerator import VideoThumbnailGenerator
 from modules.pdf_converter import PDFConverter
 from modules.ppt_to_video import export_ppt_to_video
-from modules.utils.logwriter import setup_logging
+from utils.logwriter import setup_logging
 
 
 # 監視対象の拡張子
