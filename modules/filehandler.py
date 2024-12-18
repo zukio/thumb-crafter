@@ -10,6 +10,8 @@ from modules.video_thumbGenerator import VideoThumbnailGenerator
 from modules.pdf_converter import PDFConverter
 from modules.ppt_to_video import export_ppt_to_video
 from utils.logwriter import setup_logging
+import asyncio
+
 
 # 監視対象の拡張子
 VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.flv', '.mov']
@@ -32,7 +34,7 @@ class FileHandler(FileSystemEventHandler):
         self.file_converter = PDFConverter()
         self.event_queue = [] if sender else None
 
-    def on_created(self, event):
+    async def on_created(self, event):
         """ファイル作成時に呼び出されます。"""
         if event.is_directory:
             return
@@ -43,57 +45,39 @@ class FileHandler(FileSystemEventHandler):
                      file_path}, extension: {ext}")
 
         if ext in VIDEO_EXTENSIONS:
-            self.create_thumbnail(file_path)
+            await self.create_thumbnail(file_path)
         elif ext == PDF_EXTENSION:
-            self.convert_pdf_to_images(file_path)
+            await self.convert_pdf_to_images(file_path)
         elif ext in PPT_EXTENSIONS:
-            try:
-                self.convert_ppt_to_video(file_path)
-            except Exception as e:
-                logging.error(f"Failed to convert PPT to video: {e}")
-                self.convert_ppt_to_pdf(file_path)
-
+            await self.convert_ppt(file_path)
         # 送信機能がある場合のみイベントを送信
         if self.sender:
             self.queue_event(event)
 
-    def create_thumbnail(self, file_path):
+    async def create_thumbnail(self, file_path):
         """動画ファイルのサムネイル生成"""
         try:
-            thumbnail_path = VideoThumbnailGenerator().create_thumbnail(file_path, self.seconds)
-            logging.info(f"Thumbnail generated: {thumbnail_path}")
+            await VideoThumbnailGenerator().create_thumbnail(file_path, self.seconds)
         except Exception as e:
             logging.error(f"Failed to create video thumbnail: {e}")
 
-    def convert_pdf_to_images(self, pdf_path):
+    async def convert_pdf_to_images(self, pdf_path):
         """PDFをシーケンス画像に変換し、1ページ目をサムネイルに設定します。"""
         try:
-            logging.info(f"Starting PDF conversion for: {pdf_path}")
-            output_dir = os.path.join(os.path.dirname(pdf_path), "sequence")
-            images = self.file_converter.convert_pdf_to_images(
-                pdf_path, output_dir)
-            if images:
-                thumbnail_path = os.path.join(
-                    os.path.dirname(pdf_path), "thumbnail.png")
-                os.rename(images[0], thumbnail_path)
-                logging.info(f"PDF thumbnail generated: {thumbnail_path}")
+            await self.file_converter.convert_pdf_to_images(pdf_path)
         except Exception as e:
             logging.error(f"Failed to convert PDF: {e}")
 
-    def convert_ppt_to_pdf(self, ppt_path):
-        """PPTX/PPSXをPDFに変換します。"""
-        try:
-            self.file_converter.convert_ppt_to_pdf(ppt_path)
-        except Exception as e:
-            logging.error(f"Failed to convert PPT to PDF: {e}")
-
-    def convert_ppt_to_video(self, ppt_path):
+    async def convert_ppt(self, ppt_path):
         """PPTX/PPSXを動画に変換します。"""
         try:
             folder_path = os.path.dirname(ppt_path)
             export_ppt_to_video(folder_path, folder_path)
         except Exception as e:
-            logging.error(f"Failed to convert PPT to video: {e}")
+            try:
+                await self.file_converter.convert_ppt_to_pdf(ppt_path)
+            except Exception as e:
+                logging.error(f"Failed to convert PPT to PDF: {e}")
 
     def queue_event(self, event):
         """イベントをキューに追加し、UDPメッセージを送信します。"""
@@ -122,18 +106,18 @@ class FileHandler(FileSystemEventHandler):
                 logging.error(f"Error in sending message: {e}")
         logging.info(f"Destroy called with reason: {reason}")
 
-    def list_files(self, start_path):
+    async def list_files(self, start_path):
         """指定したディレクトリ内のすべてのファイルをリストし、処理します。"""
         logging.info(f"Listing files in directory: {start_path}")
-        set_filehandle(self, start_path, self.exclude_subdirectories, [])
+        await set_filehandle(self, start_path, self.exclude_subdirectories, [])
 
 
-def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
+async def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
     """指定したディレクトリ（およびそのサブディレクトリ）内のすべてのファイルに対して `on_created` を呼び出します。"""
     if exclude_subdirectories:
         for file in os.listdir(start_path):
             file_path = os.path.join(start_path, file)
-            event_handler.on_created(FileMockEvent(file_path))
+            await event_handler.on_created(FileMockEvent(file_path))
     else:
         for root, _, files in os.walk(start_path):
             current_depth = root.count(
@@ -141,7 +125,7 @@ def set_filehandle(event_handler, start_path, exclude_subdirectories, filelist):
             if current_depth < 5:
                 for file in files:
                     file_path = os.path.join(root, file)
-                    event_handler.on_created(FileMockEvent(file_path))
+                    await event_handler.on_created(FileMockEvent(file_path))
 
 
 class FileMockEvent:

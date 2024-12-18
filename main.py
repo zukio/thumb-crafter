@@ -22,7 +22,7 @@ async def main(args):
     server_task = asyncio.create_task(start_server(12321, "some_key"))
 
     # ファイルのリストを取得する
-    event_handler.list_files(path)
+    await event_handler.list_files(path)
 
     try:
         # 以下に後続の処理を記述する

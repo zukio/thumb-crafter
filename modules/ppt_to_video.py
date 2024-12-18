@@ -2,22 +2,19 @@
 PowerPointのCOMオブジェクトを使用してプレゼンテーションをビデオとしてエクスポートします。
 pywin32 ライブラリを使用
 """
-import os
 import time
 import win32com.client
 from pathlib import Path
 
 
 def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=30):
-    # PowerPointのアプリケーションを起動
+    """PowerPointプレゼンテーションをビデオとしてエクスポートします。"""
     powerpoint = win32com.client.Dispatch("PowerPoint.Application")
     powerpoint.Visible = True
 
-    # 出力フォルダが存在しない場合は作成
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
 
-    # フォルダ内のpptxおよびppsxファイルを取得
     files = [f for f in Path(folder_path).iterdir()
              if f.suffix.lower() in ['.pptx', '.ppsx']]
 
@@ -29,15 +26,11 @@ def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=
         try:
             print(f"Processing {file}...")
 
-            # プレゼンテーションを開く
             presentation = powerpoint.Presentations.Open(
                 str(file), True, False, False)
-
-            # 出力先のMP4ファイルパス
             output_path = output_folder / f"{file.stem}.mp4"
             print(f"Exporting to {output_path}...")
 
-            # ビデオとしてエクスポート（解像度とフレームレートを指定）
             presentation.CreateVideo(str(output_path), resolution, frame_rate)
             print("CreateVideo called.")
 
@@ -57,11 +50,13 @@ def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=
                 print(f"Warning: Export may not have completed for {
                       file.name}")
 
-            # プレゼンテーションを閉じる
             presentation.Close()
         except Exception as e:
             print(f"Error processing {file}: {e}")
+        finally:
+            # 確実にPowerPointを終了する
+            if 'presentation' in locals() and not presentation.Saved:
+                presentation.Close()
 
-    # PowerPointアプリケーションを終了
     print("Quitting PowerPoint application.")
     powerpoint.Quit()
