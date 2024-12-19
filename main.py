@@ -5,11 +5,11 @@ import argparse
 import asyncio
 from aioconsole import ainput
 from watchdog.observers import Observer
-from modules.communication.udp_client import DelayedUDPSender as DelayedUDPSenderUDP, hello_server as hello_server_udp
-from modules.communication.tcp_client import DelayedTCPSender as DelayedTCPSenderTCP, hello_server as hello_server_tcp
+from utils.communication.udp_client import DelayedUDPSender as DelayedUDPSenderUDP, hello_server as hello_server_udp
+from utils.communication.tcp_client import DelayedTCPSender as DelayedTCPSenderTCP, hello_server as hello_server_tcp
+from utils.communication.ipc_client import check_existing_instance
+from utils.communication.ipc_server import start_server
 from modules.filehandler import FileHandler
-from modules.communication.ipc_client import check_existing_instance
-from modules.communication.ipc_server import start_server
 
 # プロセスサーバのタスクハンドルを保持する変数
 server_task = None

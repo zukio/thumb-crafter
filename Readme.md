@@ -71,22 +71,19 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
    thumb-crafter
    ├── main.py
    ├── modules
-   │   ├── communication
-   │   │   ├── ipc_client.py
-   │   │   ├── ipc_server.py
-   │   │   ├── tcp_client.py
-   │   │   └── udp_client.py
-   │   ├── __init__.py
    │   ├── filehandler.py
-   │   ├── filehandler_communication.py
-   │   ├── pdf_converter.py
-   │   ├── video_thumbGenerator.py
-   │   └── ppt_to_video.py
+   │   ├── fileConvert_pdf.py
+   │   ├── fileConvert_ppt.py
+   │   └── fileGenerate_thumbnail.py
    └── utils
-    ├── logwriter.py
-    ├── multiple_window.py
-    └── multiple_pid.py
-
+       ├── communication
+       │   ├── ipc_client.py
+       │   ├── ipc_server.py
+       │   ├── tcp_client.py
+       │   └── udp_client.py
+       ├── logwriter.py
+       ├── multiple_window.py
+       └── multiple_pid.py
    ```
 
 ## Usage
@@ -109,7 +106,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 オプションは、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
 
 ```shell
-thumb_crafter_udp.exe --exclude_subdirectories --ip <IPアドレス> --port <ポート番号>
+thumb_crafter_udp.exe --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
 ```
 
 - `--exclude_subdirectories`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。
