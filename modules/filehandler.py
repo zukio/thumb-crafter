@@ -6,9 +6,9 @@ import os
 import logging
 import json
 from watchdog.events import FileSystemEventHandler
-from modules.fileGenerate_thumbnail import VideoThumbnailGenerator
-from modules.fileConvert_pdf import PDFConverter
-from modules.fileConvert_ppt import export_ppt_to_video
+from modules.filegenerate_thumbnail import VideoThumbnailGenerator
+from modules.fileconvert_pdf import PDFConverter
+from modules.fileconvert_ppt import export_ppt_to_video
 from utils.logwriter import setup_logging
 import asyncio
 
