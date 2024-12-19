@@ -69,21 +69,24 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 
    ```text
    thumb-crafter
-   ├── main.py
+   ├── main.py (エントリーポイント)
    ├── modules
-   │   ├── filehandler.py
+   │   ├── filehandler.py (ファイル操作)
    │   ├── fileConvert_pdf.py
    │   ├── fileConvert_ppt.py
    │   └── fileGenerate_thumbnail.py
-   └── utils
-       ├── communication
-       │   ├── ipc_client.py
-       │   ├── ipc_server.py
-       │   ├── tcp_client.py
-       │   └── udp_client.py
-       ├── logwriter.py
-       ├── multiple_window.py
-       └── multiple_pid.py
+   ├── utils
+   │   ├── communication
+   │   │   ├── ipc_client.py
+   │   │   ├── ipc_server.py
+   │   │   ├── tcp_client.py
+   │   │   └── udp_client.py
+   │   ├── logwriter.py
+   │   ├── multiple_window.py
+   │   └── multiple_pid.py
+   └── tray
+       ├── config_dialog.py (設定ダイアログ)
+       └── tray_icon.py (タスクトレイの実装)
    ```
 
 ## Usage
