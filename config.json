@@ -1,0 +1,9 @@
+{
+	"target": "./",
+	"exclude_subdirectories": false,
+	"protocol": "none",
+	"ip": "localhost",
+	"port": 12345,
+	"seconds": 1,
+	"delay": 1
+}
