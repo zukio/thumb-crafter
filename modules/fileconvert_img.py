@@ -12,6 +12,11 @@ import subprocess
 class ImgToVideo:
     def images_to_video(image_dir, output_video, fps=1):
         """画像を動画に変換"""
+        # 出力がディレクトリの場合、ファイル名を指定
+        if os.path.isdir(output_video):
+            dirname = os.path.basename(image_dir).replace("_sequence", "")
+            output_video = os.path.join(
+                output_video, f"{dirname}.mp4")  # デフォルトファイル名
         images = sorted(glob.glob(os.path.join(image_dir, "*.png")))
         if not images:
             print("No images found in directory")
@@ -33,8 +38,14 @@ class ImgToVideo:
 
     def images_to_video_ffmpeg(image_dir, output_video, fps=1):
         """画像を動画に変換（ffmpegを使用）"""
-        input_pattern = os.path.join(
-            image_dir, "page-%03d.png")  # 例: page-001.png, page-002.png
+        # 出力がディレクトリの場合、ファイル名を指定
+        if os.path.isdir(output_video):
+            dirname = os.path.basename(image_dir).replace("_sequence", "")
+            output_video = os.path.join(
+                output_video, f"{dirname}.mp4")  # デフォルトファイル名
+
+        # 例: page-001.png, page-002.png
+        input_pattern = os.path.join(image_dir, "page-%03d.png")
         cmd = [
             "ffmpeg",
             "-y",  # 既存ファイルを上書き
@@ -44,6 +55,7 @@ class ImgToVideo:
             "-pix_fmt", "yuv420p",  # 再生互換性のためのピクセルフォーマット
             output_video
         ]
+
         try:
             subprocess.run(cmd, check=True)
             print(f"Video created: {output_video}")

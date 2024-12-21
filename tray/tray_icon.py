@@ -39,9 +39,8 @@ class TrayIcon:
 
     def show_config(self):
         print("Settings clicked")
-        current_path = self.thumb_crafter.config.get(
-            'target', '')  # 現在の監視対象ディレクトリ
-        self.dialog = ConfigDialog(current_path)  # 現在のパスを渡してダイアログを初期化
+        self.dialog = ConfigDialog(
+            self.thumb_crafter.config)  # 現在のパスを渡してダイアログを初期化
         # モーダル表示
         if self.dialog.exec_():  # OKボタンが押された場合
             config = self.dialog.get_config()

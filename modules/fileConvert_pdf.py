@@ -8,7 +8,7 @@ import asyncio
 import shutil
 from pathlib import Path
 import fitz  # PyMuPDF
-from modules.fileconvert_img import ImgToVideo
+from modules.fileConvert_img import ImgToVideo
 
 
 class PDFConverter:
@@ -35,6 +35,8 @@ class PDFConverter:
             shutil.copy(first_page, thumbnail_path)
             print(f"Thumbnail saved: {thumbnail_path}")
 
+        return sequence_dir
+
     async def convert_pdf_to_imagemagick(self, pdf_path):
         # ImageMagickのインストールが必要です。
         """PDFをシーケンス画像に変換し、1ページ目をサムネイルとして生成します。"""
@@ -57,6 +59,8 @@ class PDFConverter:
             f"{pdf_name}_thumbnail.png"
         if first_page.exists():
             shutil.copy(first_page, thumbnail_path)
+
+        return sequence_dir
 
     async def convert_ppt_to_pdf(self, ppt_path):
         # LibreOfficeのインストールが必要です。
@@ -84,16 +88,20 @@ class PDFConverter:
             raise RuntimeError(f"Error during subprocess: {
                                stderr.decode().strip()}")
 
-    def pdf_to_video(self, pdf_path, output_video, temp_dir="temp_images", fps=1):
+    async def convert_pdf_to_video(self, pdf_path, output_video, fps=1):
         """PDFを動画に変換"""
+        temp_dir = "temp_images"
         try:
+            # PDFを画像に変換
             print("Converting PDF to images...")
-            image_dir = self.convert_pdf_to_images(pdf_path, temp_dir)
+            temp_dir = await self.convert_pdf_to_images(pdf_path)
 
+            # 画像から動画を作成
             print("Creating video from images...")
-            ImgToVideo.images_to_video_ffmpeg(image_dir, output_video, fps)
+            await ImgToVideo.images_to_video(temp_dir, output_video, fps)
 
             print("PDF to video conversion completed.")
         finally:
-            # 一時ディレクトリを削除する場合はここで対応
-            pass
+            # 一時ディレクトリを削除
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)  # ディレクトリとその中身を削除

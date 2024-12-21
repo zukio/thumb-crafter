@@ -1,7 +1,5 @@
 import os
 import sys
-import json
-import signal
 import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import QTimer
@@ -22,9 +20,18 @@ class ThumbCrafter:
         self.server_task = None
         self.sender = None
         self.loop = None
-        self.config_manager = ConfigManager()
-        self.config = self.config_manager.load_config()
         self.tray = None  # TrayIconを初期化して保持
+        try:
+            # JSON設定のロード
+            self.config_manager = ConfigManager()
+            json_config = self.config_manager.load_config()
+            # CLI引数の解析とマージ
+            cli_args = self.config_manager.parse_arguments()
+            self.config = self.config_manager.merge_config(
+                json_config, cli_args)
+        except Exception as e:
+            print(f"Error during initialization: {e}")
+            self.config = {}
 
         # デフォルトターゲットディレクトリの設定
         if not self.config['target']:
@@ -54,11 +61,14 @@ class ThumbCrafter:
 
             # FileHandlerの初期化
             self.event_handler = FileHandler(
-                self.config['exclude_subdirectories'],
                 self.sender,
+                self.config['ignore_subfolders'],
                 self.config['ip'],
                 self.config['port'],
-                self.config['seconds']
+                self.config['thumbnail_time_seconds'],
+                self.config['convert_slide'],
+                self.config['convert_document'],
+                self.config['page_duration']
             )
 
             # サーバー通信の開始
@@ -77,7 +87,7 @@ class ThumbCrafter:
             self.observer.schedule(
                 self.event_handler,
                 self.config['target'],
-                recursive=not self.config['exclude_subdirectories']
+                recursive=not self.config['ignore_subfolders']
             )
             print(f"Starting observer on directory: {self.config['target']}")
             self.observer.start()
@@ -119,6 +129,9 @@ def exit_handler(reason, thumb_crafter):
 def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+
+    # 設定をThumbCrafterに適用
+    thumb_crafter = ThumbCrafter()
 
     thumb_crafter = ThumbCrafter()
     thumb_crafter.tray = TrayIcon(thumb_crafter)  # TrayIconを保持
