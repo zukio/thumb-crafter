@@ -57,7 +57,7 @@ if __name__ == "__main__":
                         help='IP address to send the messages')
     parser.add_argument('--port', default=12345, type=int,
                         help='Port number to send the messages')
-    parser.add_argument('--delay', default=1, type=int,
+    parser.add_argument('--send_interval', default=1, type=int,
                         help='Delay in seconds for sending messages')
     parser.add_argument('--protocol', choices=['none', 'udp', 'tcp'], default='none',
                         help='Communication protocol to use (none, udp, tcp)')
@@ -70,11 +70,11 @@ if __name__ == "__main__":
         print("既に起動しています。")
         sys.exit(0)
 
-    if args.protocol == 'udp':
-        sender = DelayedUDPSenderUDP(args.delay)
+    if args.protocol == 'udp' or (args.protocol is None and args.ip):
+        sender = DelayedUDPSenderUDP(args.send_interval)
         hello_server = hello_server_udp
     elif args.protocol == 'tcp':
-        sender = DelayedTCPSenderTCP(args.delay)
+        sender = DelayedTCPSenderTCP(args.send_interval)
         hello_server = hello_server_tcp
     else:
         sender = None

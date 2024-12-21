@@ -70,6 +70,7 @@ class FileHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         """ファイル削除時に呼び出されます。"""
+        print(f"File created event: {event.src_path}")
         if not event.is_directory:
             asyncio.run_coroutine_threadsafe(
                 self.handle_deleted(event), MAIN_LOOP)
@@ -130,7 +131,7 @@ class FileHandler(FileSystemEventHandler):
         try:
             # PPTから動画に変換
             folder_path = os.path.dirname(ppt_path)
-            export_ppt_to_video(folder_path, folder_path)
+            export_ppt_to_video(folder_path, folder_path, 1)
 
             # 生成された動画のパスを構築
             video_path = os.path.join(
@@ -143,7 +144,10 @@ class FileHandler(FileSystemEventHandler):
         except Exception as e:
             logging.error(f"Failed to convert PPT to video: {e}")
             try:
-                await self.file_converter.convert_ppt_to_pdf(ppt_path)
+                # PPTをPDFに変換
+                pdf_path = await self.file_converter.convert_ppt_to_pdf(ppt_path)
+                # PDFを画像に変換
+                await self.convert_pdf_to_images(pdf_path)
             except Exception as e:
                 logging.error(f"Failed to convert PPT to PDF: {e}")
 
@@ -183,6 +187,7 @@ class FileHandler(FileSystemEventHandler):
         # 起動時にファイルを読み込んだときのUDP送信
         logging.info('===============')
         logging.info(f"Listing files in directory: {start_path}")
+        print(f"Listing files in directory: {start_path}")
         await set_filehandle(self, start_path, self.exclude_subdirectories, [])
         # 送信機能がある場合のみイベントを送信
         if self.sender:

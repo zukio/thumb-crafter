@@ -13,7 +13,7 @@ class ConfigManager:
             'ip': 'localhost',
             'port': 12345,
             'seconds': 1,
-            'delay': 1
+            'send_interval': 1
         }
         self.config = {}
         self.config_path = os.path.join(os.path.dirname(

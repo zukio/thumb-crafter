@@ -64,7 +64,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 5. thumb-craft-udp.py スクリプトを使用して、ディレクトリの監視とサムネイル生成を開始します。
 
    ```shell
-   python main.py --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+   python main.py --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
    ```
 
    ```text
@@ -109,7 +109,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 オプションは、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
 
 ```shell
-thumb_crafter_EX.exe --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+thumb_crafter_EX.exe --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
 ```
 
 - `--exclude_subdirectories`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。
@@ -117,7 +117,8 @@ thumb_crafter_EX.exe --protocol udp --exclude_subdirectories --target <監視対
 - `--seconds`: サムネイルの生成に使用するフレームの秒数。
 - `--ip <IPアドレス>`: UDP メッセージを送信するための宛先 IP アドレスを指定します。
 - `--port <ポート番号>`: UDP メッセージを送信するための宛先ポート番号を指定します。
-- `--delay`: UDP の連投を防ぐため後続のイベントを待機する秒数。
+- `--send_interval`: UDP の連投を防ぐため後続のイベントを待機する秒数。
+- `--slide_duration`: スライドを動画に変換する場合の1ページあたりの表示秒数。
 
 注：デフォルトでは、IP アドレスは`localhost`、ポート番号は`12345`、後続のイベントを待機する秒数 は `1` 秒間です。
 

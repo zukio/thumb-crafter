@@ -7,8 +7,17 @@ import win32com.client
 from pathlib import Path
 
 
-def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=30, event_handler=None):
-    """PowerPointプレゼンテーションをビデオとしてエクスポートし、生成された動画に対してon_createdを呼び出します。"""
+def export_ppt_to_video(folder_path, output_folder, slide_duration=5, resolution=1080, frame_rate=30, event_handler=None):
+    """
+    PowerPointプレゼンテーションをビデオとしてエクスポートし、生成された動画に対してon_createdを呼び出します。
+
+    Args:
+        folder_path (str): PowerPointファイルのあるフォルダパス
+        output_path (str): 出力先フォルダパス
+        slide_duration (int): 各スライドの表示時間（秒）
+        resolution (int): 出力動画の解像度（縦ピクセル）
+        frame_rate (int): フレームレート
+    """
     powerpoint = win32com.client.Dispatch("PowerPoint.Application")
     powerpoint.Visible = True
 
@@ -31,30 +40,35 @@ def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=
             presentation = powerpoint.Presentations.Open(
                 str(file), True, False, False)
 
+            # スライドごとの表示時間を設定
+            for slide in presentation.Slides:
+                if not slide.SlideShowTransition.AdvanceOnTime:
+                    slide.SlideShowTransition.AdvanceTime = slide_duration
+                slide.SlideShowTransition.AdvanceOnTime = True  # 時間経過で自動進行
+
             # 出力先のMP4ファイルパス
             output_path = output_folder / f"{file.stem}.mp4"
             print(f"Exporting to {output_path}...")
 
             # ビデオとしてエクスポート
-            presentation.CreateVideo(str(output_path), resolution, frame_rate)
+            presentation.CreateVideo(
+                FileName=str(output_path),
+                UseTimingsAndNarrations=True,  # スライド時間設定を使用
+                DefaultSlideDuration=slide_duration  # タイミングがないスライドのデフォルト時間
+            )
             print("CreateVideo called.")
 
             # エクスポートが完了するまで待機（最大600秒）
             timeout = 600
             elapsed = 0
+            EXPORT_COMPLETE_STATUS = 3
+            CHECK_INTERVAL = 5  # seconds
 
-            while presentation.CreateVideoStatus != 3 and elapsed < timeout:
-                time.sleep(5)
-                elapsed += 5
+            while presentation.CreateVideoStatus != EXPORT_COMPLETE_STATUS and elapsed < timeout:
+                time.sleep(CHECK_INTERVAL)
+                elapsed += CHECK_INTERVAL
                 print(f"Waiting... Elapsed time: {elapsed} seconds. CreateVideoStatus: {
                       presentation.CreateVideoStatus}")
-
-            if presentation.CreateVideoStatus == 3:
-                print(f"Exported to {output_path}")
-
-            else:
-                print(f"Warning: Export may not have completed for {
-                      file.name}")
 
         except Exception as e:
             print(f"Error processing {file}: {e}")
@@ -62,5 +76,7 @@ def export_ppt_to_video(folder_path, output_folder, resolution=1080, frame_rate=
         finally:
             if presentation:
                 presentation.Close()
-            powerpoint.Quit()
-            print("Quitting PowerPoint application.")
+            print("Finished processing.")
+
+    powerpoint.Quit()
+    print("Quitting PowerPoint application.")

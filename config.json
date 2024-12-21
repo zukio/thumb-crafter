@@ -1,9 +1,9 @@
 {
-	"target": "./",
-	"exclude_subdirectories": false,
-	"protocol": "none",
-	"ip": "localhost",
-	"port": 12345,
-	"seconds": 1,
-	"delay": 1
+    "target": "I:/data/bat/ffmpeg/ppt-to-video",
+    "exclude_subdirectories": false,
+    "protocol": "udp",
+    "ip": "localhost",
+    "port": 12345,
+    "seconds": 1,
+    "send_interval": 1
 }

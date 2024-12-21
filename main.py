@@ -3,7 +3,7 @@ import sys
 import json
 import signal
 import asyncio
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import QTimer
 from watchdog.observers import Observer
 from modules.filehandler import FileHandler
@@ -24,6 +24,7 @@ class ThumbCrafter:
         self.loop = None
         self.config_manager = ConfigManager()
         self.config = self.config_manager.load_config()
+        self.tray = None  # TrayIconを初期化して保持
 
         # デフォルトターゲットディレクトリの設定
         if not self.config['target']:
@@ -41,11 +42,11 @@ class ThumbCrafter:
                 return False
 
             # 通信プロトコルの設定
-            if self.config['protocol'] == 'udp':
-                self.sender = DelayedUDPSenderUDP(self.config['delay'])
+            if self.config['protocol'] == 'udp' or (self.config['protocol'] is None and self.config.get('ip')):
+                self.sender = DelayedUDPSenderUDP(self.config['send_interval'])
                 hello_server = hello_server_udp
             elif self.config['protocol'] == 'tcp':
-                self.sender = DelayedTCPSenderTCP(self.config['delay'])
+                self.sender = DelayedTCPSenderTCP(self.config['send_interval'])
                 hello_server = hello_server_tcp
             else:
                 self.sender = None
@@ -66,6 +67,11 @@ class ThumbCrafter:
                 if response == "overlapping":
                     return False
 
+            # 初期ファイル処理
+            print(f"Initializing file handler for directory: {
+                self.config['target']}")
+            await self.event_handler.list_files(self.config['target'])
+
             # オブザーバーの開始
             self.observer = Observer()
             self.observer.schedule(
@@ -73,6 +79,7 @@ class ThumbCrafter:
                 self.config['target'],
                 recursive=not self.config['exclude_subdirectories']
             )
+            print(f"Starting observer on directory: {self.config['target']}")
             self.observer.start()
 
             # IPCサーバーの開始（非同期タスクとして起動し、バックグラウンドで実行）
@@ -99,32 +106,40 @@ class ThumbCrafter:
 
     def restart(self):
         self.stop()
-        self.start()
+        asyncio.run(self.start())
 
 
 def exit_handler(reason, thumb_crafter):
     thumb_crafter.stop()
+    if thumb_crafter.tray:
+        thumb_crafter.tray.tray_icon.hide()
     sys.exit(reason)
 
 
 def main():
     app = QApplication(sys.argv)
-    thumb_crafter = ThumbCrafter()
+    app.setQuitOnLastWindowClosed(False)
 
-    # シグナルハンドラの設定
-    signal.signal(signal.SIGINT, lambda sig, frame: exit_handler(
-        "[Exit] Signal Interrupt", thumb_crafter))
+    thumb_crafter = ThumbCrafter()
+    thumb_crafter.tray = TrayIcon(thumb_crafter)  # TrayIconを保持
 
     try:
-        if asyncio.run(thumb_crafter.start()):
-            tray = TrayIcon(thumb_crafter)
-            # PyQtのイベントループを使用
-            timer = QTimer()
-            timer.timeout.connect(lambda: None)  # キープアライブタイマー
-            timer.start(100)
-            app.exec_()
-        else:
-            sys.exit(1)
+        while True:
+            if asyncio.run(thumb_crafter.start()):
+                print("Tray icon initialized")
+                timer = QTimer()
+                timer.timeout.connect(lambda: None)  # キープアライブ用タイマー
+                timer.start(100)
+                exit_code = app.exec_()  # イベントループ開始
+                print(f"Main event loop exited with code: {exit_code}")
+
+                if exit_code == 0:  # 通常終了時
+                    break
+                else:  # 再起動
+                    print("Restarting event loop...")
+                    thumb_crafter.tray.tray_icon.show()
+            else:
+                sys.exit(1)
     except KeyboardInterrupt:
         exit_handler("[Exit] Keyboard Interrupt", thumb_crafter)
 

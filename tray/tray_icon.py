@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction, QDialog
 from PyQt5.QtGui import QCursor, QIcon
 from .config_dialog import ConfigDialog
 from modules.config_manager import ConfigManager
@@ -8,6 +8,7 @@ from modules.config_manager import ConfigManager
 
 class TrayIcon:
     def __init__(self, thumb_crafter):
+        print("Initializing TrayIcon")
         self.thumb_crafter = thumb_crafter
         self.tray_icon = QSystemTrayIcon()
         icon_path = os.path.abspath("tray/icon.png")
@@ -21,6 +22,7 @@ class TrayIcon:
 
         # クリックイベントの設定
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
+        self.tray_icon.show()
 
     def create_actions(self):
         config_action = QAction("Settings", self.menu)  # 親として self.menu を渡す
@@ -37,17 +39,22 @@ class TrayIcon:
 
     def show_config(self):
         print("Settings clicked")
-        dialog = ConfigDialog()
-        if dialog.exec_():
-            config = dialog.get_config()
-            self.thumb_crafter.config_manager.update_config(config)
+        current_path = self.thumb_crafter.config.get(
+            'target', '')  # 現在の監視対象ディレクトリ
+        self.dialog = ConfigDialog(current_path)  # 現在のパスを渡してダイアログを初期化
+        # モーダル表示
+        if self.dialog.exec_():  # OKボタンが押された場合
+            config = self.dialog.get_config()
+            self.thumb_crafter.config_manager.update_config(
+                config)  # 設定を更新
+            self.thumb_crafter.config = config  # ローカルの設定も更新
             print("Config updated:", self.thumb_crafter.config)
+            self.thumb_crafter.restart()  # 再起動して設定を反映
+        else:  # Cancelボタンが押された場合
+            print("Dialog cancelled")
 
     def exit_app(self):
+        print("exit_app called")
         self.thumb_crafter.stop()
         self.tray_icon.hide()
         QCoreApplication.quit()
-
-    def run(self):
-        # self.app.exec_() # QApplication の初期化は main.py で行う
-        self.tray_icon.show()
