@@ -106,7 +106,7 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 オプションは、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
 
 ```shell
-thumb_crafter_udp.exe --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+thumb_crafter_udp.exe --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
 ```
 
 - `--exclude_subdirectories`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。

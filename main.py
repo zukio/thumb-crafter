@@ -70,7 +70,7 @@ if __name__ == "__main__":
         print("既に起動しています。")
         sys.exit(0)
 
-    if args.protocol == 'udp':
+    if args.protocol == 'udp' or (args.protocol is None and args.ip):
         sender = DelayedUDPSenderUDP(args.delay)
         hello_server = hello_server_udp
     elif args.protocol == 'tcp':
