@@ -1,7 +1,9 @@
 import os
 import sys
 import asyncio
-from PyQt5.QtWidgets import QApplication, QWidget
+import logging
+from utils.logwriter import setup_logging
+from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QTimer
 from watchdog.observers import Observer
 from modules.filehandler import FileHandler
@@ -10,7 +12,10 @@ from utils.communication.udp_client import DelayedUDPSender as DelayedUDPSenderU
 from utils.communication.tcp_client import DelayedTCPSender as DelayedTCPSenderTCP, hello_server as hello_server_tcp
 from utils.communication.ipc_client import check_existing_instance
 from utils.communication.ipc_server import start_server
+from utils.multiple_pid import block_global_instance
 from tray.tray_icon import TrayIcon
+
+setup_logging()
 
 
 class ThumbCrafter:
@@ -44,8 +49,23 @@ class ThumbCrafter:
 
     async def start(self):
         try:
+            if self.config.get('single_instance_only', True):  # 重複起動を禁止
+                if block_global_instance(self):
+                    self.show_error_dialog(
+                        "シングル起動モードです",
+                        None,
+                        2000,
+                        exit_handler
+                    )
+                    return False
+
             if check_existing_instance(12321, self.config['target']):
-                print("既に起動しています。")
+                self.show_error_dialog(
+                    "既に同じターゲットで動作中です",
+                    None,
+                    2000,
+                    exit_handler
+                )
                 return False
 
             # 通信プロトコルの設定
@@ -99,11 +119,36 @@ class ThumbCrafter:
             return True
 
         except FileNotFoundError:
+            self.show_error_dialog(
+                "見つかりません",
+                f"{self.config['target']}",
+                2000,
+                exit_handler
+            )
             print(f"Error: ターゲットディレクトリが見つかりません: {self.config['target']}")
             return False
         except Exception as e:
             print(f"Error: {str(e)}")
             return False
+
+    def show_error_dialog(self, message, details=None, timeout=2000, exit_handler=None):
+        """エラーダイアログを表示"""
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)  # エラーアイコン
+        msg.setWindowTitle("エラー")
+        msg.setText(message)
+        if details:
+            msg.setInformativeText(details)  # 詳細な説明
+
+        msg.setStandardButtons(QMessageBox.Ok)
+
+        # ダイアログが閉じられたときにexit_handlerを呼び出す
+        if exit_handler:
+            msg.finished.connect(lambda: exit_handler(message, self))
+
+        # タイマーで自動閉じを設定
+        QTimer.singleShot(timeout, msg.close)
+        msg.exec_()
 
     def stop(self):
         if self.observer:
@@ -152,7 +197,7 @@ def main():
                     print("Restarting event loop...")
                     thumb_crafter.tray.tray_icon.show()
             else:
-                sys.exit(1)
+                exit_handler("start() returned False", thumb_crafter)
     except KeyboardInterrupt:
         exit_handler("[Exit] Keyboard Interrupt", thumb_crafter)
 
