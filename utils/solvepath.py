@@ -26,6 +26,7 @@ def onefile_path(relative_path):
         BASE_PATH = os.path.dirname(os.path.dirname(
             __file__))  # 実行ファイル（main.py）のあるディレクトリ
 
-    full_path = os.path.join(BASE_PATH, relative_path)
+    # パスを結合して正規化
+    full_path = os.path.normpath(os.path.join(BASE_PATH, relative_path))
     print(f"Resolved path: {full_path}")  # デバッグ用
     return full_path

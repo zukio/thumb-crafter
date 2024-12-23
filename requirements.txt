@@ -8,6 +8,7 @@ opencv-python==4.10.0.84
 packaging==24.2
 pefile==2023.2.7
 Pillow==9.5.0
+psutil==6.1.1
 pyinstaller-hooks-contrib==2024.10
 PyMuPDF==1.25.1
 PyQt5==5.15.11

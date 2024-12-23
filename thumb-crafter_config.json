@@ -1,0 +1,13 @@
+{
+	"target": "",
+	"ignore_subfolders": false,
+	"protocol": "none",
+	"ip": "localhost",
+	"port": 12345,
+	"send_interval": 1,
+	"thumbnail_time_seconds": 1,
+	"convert_slide": "none",
+	"convert_document": "none",
+	"page_duration": 5,
+	"single_instance_only": true
+}
