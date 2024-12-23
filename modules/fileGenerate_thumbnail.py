@@ -1,14 +1,15 @@
 """ 
 動画ファイルからサムネイルを生成するモジュール
-ffmpegを使用して動画ファイルからサムネイルを生成します。
+ffmpegまたはOpenCVを使用して動画ファイルからサムネイルを生成します。
 """
 import os
 import asyncio
+import cv2
 
 
 class VideoThumbnailGenerator:
     async def create_thumbnail(self, file_path, user_second):
-        """指定された動画ファイルからサムネイルを非同期で生成します。"""
+        """ffmpegを使用し、指定された動画ファイルからサムネイルを非同期で生成します。"""
         thumbnail_path = f"{os.path.splitext(file_path)[0]}_thumbnail.png"
         duration = await self.get_video_duration(file_path)
 
@@ -36,7 +37,7 @@ class VideoThumbnailGenerator:
                             stderr.decode().strip()}")
 
     async def get_video_duration(self, file_path):
-        """指定された動画ファイルの長さを非同期で取得します。"""
+        """ffmpegを使用し、指定された動画ファイルの長さを非同期で取得します。"""
         cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{
             file_path}"'
 
@@ -53,3 +54,37 @@ class VideoThumbnailGenerator:
         else:
             raise Exception(f"Failed to get video duration: {
                             stderr.decode().strip()}")
+
+    def video_to_thumbnail(video_path, output_image, time_in_seconds=0):
+        """
+        動画から指定した時間のフレームをサムネイルとして保存（OpenCV版）
+        :param video_path: 動画ファイルのパス
+        :param output_image: 出力されるサムネイル画像のパス
+        :param time_in_seconds: サムネイルを抽出する時間（秒単位）
+        """
+        # 動画を読み込む
+        cap = cv2.VideoCapture(video_path)
+
+        if not cap.isOpened():
+            print(f"Error: Cannot open video {video_path}")
+            return
+
+        # フレームレートを取得
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        print(f"FPS: {fps}")
+
+        # 指定された秒数に対応するフレーム番号を計算
+        frame_number = int(fps * time_in_seconds)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+        # フレームを読み取る
+        ret, frame = cap.read()
+        if ret:
+            # フレームを画像として保存
+            cv2.imwrite(output_image, frame)
+            print(f"Thumbnail saved at: {output_image}")
+        else:
+            print("Error: Cannot read the frame")
+
+        # リソースを解放
+        cap.release()

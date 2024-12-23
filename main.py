@@ -1,115 +1,161 @@
 import os
 import sys
-import signal
-import argparse
 import asyncio
-from aioconsole import ainput
+from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtCore import QTimer
 from watchdog.observers import Observer
+from modules.filehandler import FileHandler
+from modules.config_manager import ConfigManager
 from utils.communication.udp_client import DelayedUDPSender as DelayedUDPSenderUDP, hello_server as hello_server_udp
 from utils.communication.tcp_client import DelayedTCPSender as DelayedTCPSenderTCP, hello_server as hello_server_tcp
 from utils.communication.ipc_client import check_existing_instance
 from utils.communication.ipc_server import start_server
-from modules.filehandler import FileHandler
-
-# プロセスサーバのタスクハンドルを保持する変数
-server_task = None
+from tray.tray_icon import TrayIcon
 
 
-async def main(args):
-    global server_task
+class ThumbCrafter:
+    def __init__(self):
+        self.observer = None
+        self.event_handler = None
+        self.server_task = None
+        self.sender = None
+        self.loop = None
+        self.tray = None  # TrayIconを初期化して保持
+        try:
+            # JSON設定のロード
+            self.config_manager = ConfigManager()
+            json_config = self.config_manager.load_config()
+            # CLI引数の解析とマージ
+            cli_args = self.config_manager.parse_arguments()
+            self.config = self.config_manager.merge_config(
+                json_config, cli_args)
+        except Exception as e:
+            print(f"Error during initialization: {e}")
+            self.config = {}
 
-    # プロセスサーバのタスクを開始する
-    server_task = asyncio.create_task(start_server(12321, "some_key"))
+        # デフォルトターゲットディレクトリの設定
+        if not self.config['target']:
+            self.config['target'] = os.path.abspath(
+                os.path.join(os.getcwd(), os.pardir))
 
-    # ファイルのリストを取得する
-    await event_handler.list_files(path)
+        # ターゲットディレクトリが存在しない場合は作成
+        if not os.path.exists(self.config['target']):
+            os.makedirs(self.config['target'])
+
+    async def start(self):
+        try:
+            if check_existing_instance(12321, self.config['target']):
+                print("既に起動しています。")
+                return False
+
+            # 通信プロトコルの設定
+            if self.config['protocol'] == 'udp' or (self.config['protocol'] is None and self.config.get('ip')):
+                self.sender = DelayedUDPSenderUDP(self.config['send_interval'])
+                hello_server = hello_server_udp
+            elif self.config['protocol'] == 'tcp':
+                self.sender = DelayedTCPSenderTCP(self.config['send_interval'])
+                hello_server = hello_server_tcp
+            else:
+                self.sender = None
+                def hello_server(x): return None
+
+            # FileHandlerの初期化
+            self.event_handler = FileHandler(
+                self.sender,
+                self.config['ignore_subfolders'],
+                self.config['ip'],
+                self.config['port'],
+                self.config['thumbnail_time_seconds'],
+                self.config['convert_slide'],
+                self.config['convert_document'],
+                self.config['page_duration']
+            )
+
+            # サーバー通信の開始
+            if self.sender:
+                response = hello_server(self.config['target'])
+                if response == "overlapping":
+                    return False
+
+            # 初期ファイル処理
+            print(f"Initializing file handler for directory: {
+                self.config['target']}")
+            await self.event_handler.list_files(self.config['target'])
+
+            # オブザーバーの開始
+            self.observer = Observer()
+            self.observer.schedule(
+                self.event_handler,
+                self.config['target'],
+                recursive=not self.config['ignore_subfolders']
+            )
+            print(f"Starting observer on directory: {self.config['target']}")
+            self.observer.start()
+
+            # IPCサーバーの開始（非同期タスクとして起動し、バックグラウンドで実行）
+            self.server_task = asyncio.create_task(
+                start_server(12321, self.config['target']))
+
+            return True
+
+        except FileNotFoundError:
+            print(f"Error: ターゲットディレクトリが見つかりません: {self.config['target']}")
+            return False
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return False
+
+    def stop(self):
+        if self.observer:
+            self.observer.stop()
+            self.observer.join()
+        if self.event_handler:
+            self.event_handler.destroy("[Exit] Normal")
+        if self.server_task:
+            self.server_task.cancel()
+
+    def restart(self):
+        self.stop()
+        asyncio.run(self.start())
+
+
+def exit_handler(reason, thumb_crafter):
+    thumb_crafter.stop()
+    if thumb_crafter.tray:
+        thumb_crafter.tray.tray_icon.hide()
+    sys.exit(reason)
+
+
+def main():
+    app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+
+    # 設定をThumbCrafterに適用
+    thumb_crafter = ThumbCrafter()
+
+    thumb_crafter = ThumbCrafter()
+    thumb_crafter.tray = TrayIcon(thumb_crafter)  # TrayIconを保持
 
     try:
-        # 以下に後続の処理を記述する
         while True:
-            command = await ainput("Enter a command exit: ")
-            if command.lower() == "exit":
-                exit_handler("[Exit] Command Exit")
-                break
-            await asyncio.sleep(1)
+            if asyncio.run(thumb_crafter.start()):
+                print("Tray icon initialized")
+                timer = QTimer()
+                timer.timeout.connect(lambda: None)  # キープアライブ用タイマー
+                timer.start(100)
+                exit_code = app.exec_()  # イベントループ開始
+                print(f"Main event loop exited with code: {exit_code}")
 
-        # プロセスサーバのタスクが完了するまで待機する
-        await server_task
+                if exit_code == 0:  # 通常終了時
+                    break
+                else:  # 再起動
+                    print("Restarting event loop...")
+                    thumb_crafter.tray.tray_icon.show()
+            else:
+                sys.exit(1)
+    except KeyboardInterrupt:
+        exit_handler("[Exit] Keyboard Interrupt", thumb_crafter)
 
-    except asyncio.CancelledError:
-        # プロセスサーバのタスクがキャンセルされた場合の処理
-        pass
-    finally:
-        # プロセスサーバのクリーンアップ処理（必要な場合は実装）
-        if server_task:
-            server_task.cancel()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Monitor a directory and create thumbnails for video files.')
-    parser.add_argument('--exclude_subdirectories', default=False, action='store_true',
-                        help='Exclude subdirectories in monitoring and thumbnail creation.')
-    parser.add_argument('--target', default='', type=str,
-                        help='Directory path to monitor')
-    parser.add_argument('--seconds', default=1, type=int,
-                        help='Specify the seconds of the frame to be used for thumbnail generation')
-    parser.add_argument('--ip', default='localhost', type=str,
-                        help='IP address to send the messages')
-    parser.add_argument('--port', default=12345, type=int,
-                        help='Port number to send the messages')
-    parser.add_argument('--delay', default=1, type=int,
-                        help='Delay in seconds for sending messages')
-    parser.add_argument('--protocol', choices=['none', 'udp', 'tcp'], default='none',
-                        help='Communication protocol to use (none, udp, tcp)')
-    args = parser.parse_args()
-
-    path = os.path.abspath(args.target) if args.target else os.path.abspath(
-        os.path.join(os.getcwd(), os.pardir))
-
-    if check_existing_instance(12321, path):
-        print("既に起動しています。")
-        sys.exit(0)
-
-    if args.protocol == 'udp' or (args.protocol is None and args.ip):
-        sender = DelayedUDPSenderUDP(args.delay)
-        hello_server = hello_server_udp
-    elif args.protocol == 'tcp':
-        sender = DelayedTCPSenderTCP(args.delay)
-        hello_server = hello_server_tcp
-    else:
-        sender = None
-        def hello_server(x): return None
-
-    event_handler = FileHandler(
-        args.exclude_subdirectories, sender, args.ip, args.port, args.seconds)
-
-    if sender:
-        response = hello_server(path)
-        if response is not None:
-            print(f"Hello {args.protocol.upper()}: " + response)
-            if response == "overlapping":
-                sys.exit("[Exit] Overlapping")
-
-    observer = Observer()
-    observer.schedule(event_handler, path,
-                      recursive=not args.exclude_subdirectories)
-    observer.start()
-
-    def exit_handler(reason):
-        if sender:
-            sender.send_message(args.ip, args.port, reason)
-        result = event_handler.destroy(reason)
-        if server_task:
-            server_task.cancel()
-        sys.exit(result)
-
-    def exit_wrapper(reason):
-        return lambda sig, frame: exit_handler(reason)
-    signal.signal(signal.SIGINT, exit_wrapper("[Exit] Signal Interrupt"))
-
-    try:
-        asyncio.run(main(args))
-    except KeyboardInterrupt:
-        observer.stop()
-        exit_handler("[Exit] Keyboard Interrupt")
-    observer.join()
+    main()

@@ -64,26 +64,29 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 5. thumb-craft-udp.py スクリプトを使用して、ディレクトリの監視とサムネイル生成を開始します。
 
    ```shell
-   python main.py --protocol udp --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+   python main.py --protocol udp --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
    ```
 
    ```text
    thumb-crafter
-   ├── main.py
+   ├── main.py (エントリーポイント)
    ├── modules
-   │   ├── filehandler.py
+   │   ├── filehandler.py (ファイル操作)
    │   ├── fileConvert_pdf.py
    │   ├── fileConvert_ppt.py
    │   └── fileGenerate_thumbnail.py
-   └── utils
-       ├── communication
-       │   ├── ipc_client.py
-       │   ├── ipc_server.py
-       │   ├── tcp_client.py
-       │   └── udp_client.py
-       ├── logwriter.py
-       ├── multiple_window.py
-       └── multiple_pid.py
+   ├── utils
+   │   ├── communication
+   │   │   ├── ipc_client.py
+   │   │   ├── ipc_server.py
+   │   │   ├── tcp_client.py
+   │   │   └── udp_client.py
+   │   ├── logwriter.py
+   │   ├── multiple_window.py
+   │   └── multiple_pid.py
+   └── tray
+       ├── config_dialog.py (設定ダイアログ)
+       └── tray_icon.py (タスクトレイの実装)
    ```
 
 ## Usage
@@ -106,21 +109,22 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 オプションは、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
 
 ```shell
-thumb_crafter_udp.exe --exclude_subdirectories --target <監視対象ディレクトリ> --seconds 2 --ip <IPアドレス> --port <ポート番号> --delay 3
+thumb_crafter_EX.exe --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
 ```
 
-- `--exclude_subdirectories`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。
+- `--ignore_subfolders`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。
 - `--target`: 監視するディレクトリのパス。相対パスまたは絶対パスを指定することができます。
-- `--seconds`: サムネイルの生成に使用するフレームの秒数。
+- `--thumbnail_time_seconds`: サムネイルの生成に使用するフレームの秒数。
 - `--ip <IPアドレス>`: UDP メッセージを送信するための宛先 IP アドレスを指定します。
 - `--port <ポート番号>`: UDP メッセージを送信するための宛先ポート番号を指定します。
-- `--delay`: UDP の連投を防ぐため後続のイベントを待機する秒数。
+- `--send_interval`: UDP の連投を防ぐため後続のイベントを待機する秒数。
+- `--slide_duration`: スライドを動画に変換する場合の1ページあたりの表示秒数。
 
 注：デフォルトでは、IP アドレスは`localhost`、ポート番号は`12345`、後続のイベントを待機する秒数 は `1` 秒間です。
 
 注：--target 引数が指定されなかった場合は、Python プロジェクトフォルダが置かれたディレクトリが監視されます。
 
-注：--seconds 引数が指定されなかった場合、またはビデオの長さが指定された秒未満の場合は、最初のフレームが使用されます。
+注：--thumbnail_time_seconds 引数が指定されなかった場合、またはビデオの長さが指定された秒未満の場合は、最初のフレームが使用されます。
 
 ## UDP Format
 

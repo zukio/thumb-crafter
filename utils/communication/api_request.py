@@ -2,6 +2,7 @@ import requests
 import pickle
 from threading import Timer
 
+
 def send(url, message):
     try:
         # オブジェクトをバイト列に変換（シリアライズ）します
@@ -17,14 +18,16 @@ def send(url, message):
         print('Error in API request:', e)
 
 # 最初の更新から指定した遅延時間（ここでは 1 秒）が経過するまで無更新状態が続いた時点で、一度だけAPIリクエストが送信されます。
+
+
 class DelayedAPISender:
     def __init__(self, delay=1):
-        self.delay = delay
+        self.send_interval = delay
         self.timer = None
 
     def send_message(self, url, message):
         if self.timer is not None:
             self.timer.cancel()
 
-        self.timer = Timer(self.delay, send, [url, message])
+        self.timer = Timer(self.send_interval, send, [url, message])
         self.timer.start()
