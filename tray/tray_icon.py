@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QAction, QDialog
 from PyQt5.QtGui import QCursor, QIcon
 from .config_dialog import ConfigDialog
 from modules.config_manager import ConfigManager
+from utils.solvepath import onefile_path
 
 
 class TrayIcon:
@@ -11,7 +12,7 @@ class TrayIcon:
         print("Initializing TrayIcon")
         self.thumb_crafter = thumb_crafter
         self.tray_icon = QSystemTrayIcon()
-        icon_path = os.path.abspath("tray/icon.png")
+        icon_path = onefile_path("tray/icon.png")
         self.tray_icon.setIcon(QIcon(icon_path))
         self.tray_icon.setVisible(True)
 

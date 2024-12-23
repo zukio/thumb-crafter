@@ -2,6 +2,9 @@ from PyQt5.QtWidgets import QMessageBox
 import os
 import json
 import argparse
+import sys
+from pathlib import Path
+from utils.solvepath import exe_path
 
 
 class ConfigManager:
@@ -13,8 +16,8 @@ class ConfigManager:
         'port': 12345,
         'send_interval': 1,  # UDP送信の間隔
         'thumbnail_time_seconds': 1,  # 動画の何秒目をサムネイルに書き出すか
-        "convert_slide": "video",      # スライド（PPT）を処理しない "none", または "video", "sequence" に変換
-        "convert_document": "video",  # 電子文書（PDF）を処理しない "none", または "video", "sequence" に変換
+        "convert_slide": "none",      # スライド（PPT）を処理しない "none", または "video", "sequence" に変換
+        "convert_document": "none",  # 電子文書（PDF）を処理しない "none", または "video", "sequence" に変換
         "page_duration": 5
     }
 
@@ -22,14 +25,14 @@ class ConfigManager:
         self.app_name = app_name
         self.default_config = self.DEFAULT_CONFIG
         self.config = {}
-        self.config_path = os.path.join(os.path.dirname(
-            os.path.dirname(__file__)), 'config.json')
+        # 設定ファイルのパス （PyInstallerでexe化した場合に対応）
+        self.config_path = exe_path(f"{self.app_name}_config.json")
 
     def load_config(self):
         if not os.path.exists(self.config_path):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
-            msg.setText("見つかりません")
+            msg.setText("設定ファイルが見つかりません")
             msg.setInformativeText("設定ファイルを新規作成")
             msg.setWindowTitle("設定ファイル作成")
             msg.exec_()
@@ -53,8 +56,13 @@ class ConfigManager:
         return self.config
 
     def save_config(self):
-        with open(self.config_path, 'w', encoding='utf-8') as f:
-            json.dump(self.config, f, indent=4, ensure_ascii=False)
+        """現在の設定をファイルに保存"""
+        try:
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, ensure_ascii=False, indent=4)
+            print(f"設定ファイルが保存されました: {self.config_path}")
+        except Exception as e:
+            print(f"設定ファイルの保存に失敗しました: {e}")
 
     def update_config(self, new_config):
         self.config.update(new_config)
