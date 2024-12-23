@@ -146,12 +146,13 @@ thumb-craft-udp.py スクリプトは、ログファイルに実行ログを出�
 
 7. ビルド
 
-  ``` shell
-  pyinstaller --add-data "tray/icon.png;tray" -F -w -n thumb-crafter main.py
-  ```
+   ``` shell
+   pyinstaller --add-data "tray/icon.png;tray" -F -w -n  thumb-crafter main.py
+   ```
 
-  PyInstallerには、exeだけを配布するためのオプションがいくつかあります。
-    - `-F`オプションを使用すると、すべての関連ファイルを1つのexeファイルにまとめることができます。
-    - `-w`オプションを使用すると、コンソールが表示されずにexeを実行できます。
-    - `-n`オプションを使用すると、exeに名前を付けることができます。
-    - `--add-data` リソースをEXEファイルにバンドルします。
+   PyInstallerには、exeだけを配布するためのオプションがいくつかあります。
+  
+   - `-F`オプションを使用すると、すべての関連ファイルを1つのexeファイルにまとめることができます。
+   - `-w`オプションを使用すると、コンソールが表示されずにexeを実行できます。
+   - `-n`オプションを使用すると、exeに名前を付けることができます。
+   - `--add-data` リソースをEXEファイルにバンドルします。
