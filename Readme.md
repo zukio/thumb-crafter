@@ -11,6 +11,8 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 
 ## EX版 追加の機能
 
+- タスクトレイアイコンから設定の変更、アプリケーションの終了が可能です。
+
 - PDFからシーケンス画像生成
 
   PDFファイルをシーケンス画像に変換し、1ページ目をサムネイルとして設定します。
@@ -34,82 +36,22 @@ Thumb Crafter UDP は、指定したディレクトリ内の動画ファイル�
 
    注：インストールが完了したら、FFMpeg がシステムのパスに追加されているはずです。本アプリは ffmpeg がシステムパスに追加されているか、またはその実行ファイル（ffmpeg.exe）が直接このスクリプトと同じディレクトリに存在することが前提となっています。
 
-4. ImageMagick ツールをインストールします。※ ImageMagick ツールを使用するには [GhostScript](https://ghostscript.com/releases/gsdnld.html) が必要です。
-   ImageMagick 公式サイト：[https://imagemagick.org/script/download.php](https://imagemagick.org/script/download.php)
-
-## For Custom
-
-未リリースの TCP 版、Simple（無通信）版を含む開発ソースを使用するには：
-
-1. リポジトリをクローンします。
-
-   ```shell
-   git clone https://github.com/zukio/thumb-crafter.git
-   ```
-
-2. プロジェクトのディレクトリに移動します。
-
-   ```shell
-   cd thumb-crafter-udp
-   ```
-
-3. 必要な Python パッケージをインストールします。
-
-   ```shell
-   pip install -r requirements.txt
-   ```
-
-4. [FFMpeg](https://ffmpeg.org/) 、[ImageMagick](https://imagemagick.org/script/download.php)ツールをインストールします。ffmpeg と ImageMagick はシステムパスに追加されているか、またはその実行ファイルが直接このスクリプトと同じディレクトリに存在することが前提となっています。
-
-5. thumb-craft-udp.py スクリプトを使用して、ディレクトリの監視とサムネイル生成を開始します。
-
-   ```shell
-   python main.py --protocol udp --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
-   ```
-
-   ```text
-   thumb-crafter
-   ├── main.py (エントリーポイント)
-   ├── modules
-   │   ├── filehandler.py (ファイル操作)
-   │   ├── fileConvert_pdf.py
-   │   ├── fileConvert_ppt.py
-   │   └── fileGenerate_thumbnail.py
-   ├── utils
-   │   ├── communication
-   │   │   ├── ipc_client.py
-   │   │   ├── ipc_server.py
-   │   │   ├── tcp_client.py
-   │   │   └── udp_client.py
-   │   ├── logwriter.py
-   │   ├── multiple_window.py
-   │   └── multiple_pid.py
-   └── tray
-       ├── config_dialog.py (設定ダイアログ)
-       └── tray_icon.py (タスクトレイの実装)
-   ```
-
 ## Usage
 
 ### Start App
 
-「thumb-craft-udp」を実行すると、ディレクトリの監視を開始します。
-
-### Stop App
-
-終了するには、次の手順を実行してください。
-
-- キーボードの「Ctrl」+「Alt」+「Del」キーを同時に押します。
-- タスクマネージャーが起動したら、「プロセス」タブをクリックします。
-- 「バックグラウンドプロセス」のリストから、実行している exe（thumb_crafter_udp）を探して、右クリックします。
-- 「タスクの終了」を選択します。
+「thumb_craft_ex」を実行すると、ディレクトリの監視を開始します。
+終了するには、タスクトレイアイコンをクリックして、「EXIT」を選択します。
 
 ### Options
 
-オプションは、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
+アプリケーション起動した後、タスクトレイアイコンをクリックして「Settings」を選択することでオプション設定画面を開くことができます。
+初期値は、config.json ファイルを編集することで設定可能です。
+
+または、アプリケーションの exe ファイルを右クリックし、[プロパティ]を開いて、起動時引数を書き加えることで設定可能です：
 
 ```shell
-thumb_crafter_EX.exe --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
+thumb_crafter_ex.exe --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
 ```
 
 - `--ignore_subfolders`: サブディレクトリの監視を除外します。このオプションを指定すると、指定したディレクトリのみが監視されます。
@@ -131,7 +73,7 @@ thumb_crafter_EX.exe --ignore_subfolders --target <監視対象ディレクト�
 最初の更新から 1 秒間無更新状態が続いた時点で一度だけ UDP が送信されます。
 ファイルの追加・削除が連続して発生した場合でも、連続して UDP が送信されることはありません。
 
-```
+``` json
 {
   event:[{ type:event-type, path:filepath }],
   files:video_files
@@ -144,3 +86,60 @@ thumb_crafter_EX.exe --ignore_subfolders --target <監視対象ディレクト�
 ## Logs
 
 thumb-craft-udp.py スクリプトは、ログファイルに実行ログを出力します。ログファイルは`./logs/`ディレクトリ内に日付ごとに作成されます。ログレベルは INFO です。
+
+## For Custom
+
+未リリースの TCP 版を含む開発ソースを使用するには：
+
+1. リポジトリをクローンします。
+
+   ```shell
+   git clone https://github.com/zukio/thumb-crafter.git
+   ```
+
+2. プロジェクトのディレクトリに移動します。
+
+   ```shell
+   cd thumb-crafter-udp
+   ```
+
+3. 必要な Python パッケージをインストールします。
+
+   ```shell
+   pip install -r requirements.txt
+   ```
+
+4. [FFMpeg](https://ffmpeg.org/) 、[ImageMagick](https://imagemagick.org/script/download.php)ツールをインストールします。ffmpeg と ImageMagick はシステムパスに追加されているか、またはその実行ファイルが直接このスクリプトと同じディレクトリに存在することが前提となっています。
+
+   ※ ImageMagick ツールを使用するには [GhostScript](https://ghostscript.com/releases/gsdnld.html) が必要です。
+
+5. main.py スクリプトを使用して、ディレクトリの監視とサムネイル生成を開始します。
+
+   ```shell
+   python main.py --protocol udp --ignore_subfolders --target <監視対象ディレクトリ> --thumbnail_time_seconds 2 --ip <IPアドレス> --port <ポート番号> --send_interval 3
+   ```
+
+6. ディレクトリ構成
+
+   ```text
+   thumb-crafter
+   ├── main.py (エントリーポイント)
+   ├── modules
+   │   ├── filehandler.py (ファイル操作)
+   │   ├── fileConvert_img.py
+   │   ├── fileConvert_pdf.py
+   │   ├── fileConvert_ppt.py
+   │   └── fileGenerate_thumbnail.py
+   ├── utils
+   │   ├── communication
+   │   │   ├── ipc_client.py
+   │   │   ├── ipc_server.py
+   │   │   ├── tcp_client.py
+   │   │   └── udp_client.py
+   │   ├── logwriter.py
+   │   ├── multiple_window.py
+   │   └── multiple_pid.py
+   └── tray
+       ├── config_dialog.py (設定ダイアログ)
+       └── tray_icon.py (タスクトレイの実装)
+   ```
