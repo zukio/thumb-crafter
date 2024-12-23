@@ -3,14 +3,14 @@
 オプションの指定に応じてUDP/TCPメッセージ送信を行います。
 """
 import os
-import logging
+import asyncio
 import json
+import logging
+from utils.logwriter import setup_logging
 from watchdog.events import FileSystemEventHandler
 from modules.fileGenerate_thumbnail import VideoThumbnailGenerator
 from modules.fileConvert_pdf import PDFConverter
 from modules.fileConvert_ppt import PowerPointConverter
-from utils.logwriter import setup_logging
-import asyncio
 
 
 # 監視対象の拡張子

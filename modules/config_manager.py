@@ -1,9 +1,8 @@
-from PyQt5.QtWidgets import QMessageBox
+
 import os
 import json
 import argparse
-import sys
-from pathlib import Path
+from PyQt5.QtWidgets import QMessageBox
 from utils.solvepath import exe_path
 
 
@@ -18,7 +17,8 @@ class ConfigManager:
         'thumbnail_time_seconds': 1,  # 動画の何秒目をサムネイルに書き出すか
         "convert_slide": "none",      # スライド（PPT）を処理しない "none", または "video", "sequence" に変換
         "convert_document": "none",  # 電子文書（PDF）を処理しない "none", または "video", "sequence" に変換
-        "page_duration": 5
+        "page_duration": 5,
+        'single_instance_only': False  # デフォルトで多重起動防止を無効
     }
 
     def __init__(self, app_name="thumb-crafter"):
@@ -71,6 +71,8 @@ class ConfigManager:
     @staticmethod
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Thumb Crafter EX')
+        parser.add_argument('--single_instance_only', action='store_true',
+                            help='Enable prevention of multiple instances', default=None)
         parser.add_argument('--ignore_subfolders', default=None, action='store_true',
                             help='Exclude subdirectories in monitoring and thumbnail creation.')
         parser.add_argument('--target', default=None, type=str,
